@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carioca Pro</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 650px;
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+
+    h1 { text-align: center; }
+
+    input, button, select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      border: none;
+    }
+
+    button {
+      background: #22c55e;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .player {
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      transition: transform 0.2s;
+    }
+
+    .player:hover { transform: scale(1.02); }
+
+    .leader {
+      border: 2px solid gold;
+    }
+
+    .actions {
+      display: flex;
+      gap: 5px;
+    }
+
+    .actions button { flex: 1; background: #3b82f6; }
+    .actions button:last-child { background: #ef4444; }
+
+    .round {
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🃏 Carioca Pro</h1>
+
+    <div class="round" id="roundInfo"></div>
+
+    <input id="playerName" placeholder="Nombre jugador">
+    <button onclick="addPlayer()">Agregar jugador</button>
+
+    <button onclick="nextRound()">Siguiente ronda</button>
+
+    <div id="players"></div>
+  </div>
+
+  <script>
+    const rounds = [
+      "2 tríos",
+      "1 trío + 1 escala",
+      "2 escalas",
+      "3 tríos",
+      "2 tríos + 1 escala",
+      "1 trío + 2 escalas",
+      "3 escalas"
+    ];
+
+    let state = JSON.parse(localStorage.getItem('cariocaPro')) || {
+      players: [],
+      round: 0
+    };
+
+    function save() {
+      localStorage.setItem('cariocaPro', JSON.stringify(state));
+    }
+
+    function getLeader() {
+      return [...state.players].sort((a,b)=>a.score-b.score)[0];
+    }
+
+    function render() {
+      const container = document.getElementById('players');
+      const roundInfo = document.getElementById('roundInfo');
+
+      container.innerHTML = '';
+      roundInfo.innerText = `Ronda ${state.round+1}: ${rounds[state.round] || 'Fin'}`;
+
+      const sorted = [...state.players].sort((a,b)=>a.score-b.score);
+      const leader = getLeader();
+
+      sorted.forEach((p, index) => {
+        const div = document.createElement('div');
+        div.className = 'player ' + (p === leader ? 'leader' : '');
+
+        div.style.background = p.color;
+
+        div.innerHTML = `
+          <h3>${p.name} ${p === leader ? '🏆' : ''}</h3>
+          <div>Puntos: ${p.score}</div>
+          <div class="actions">
+            <button onclick="addScore(${state.players.indexOf(p)})">+ Puntos</button>
+            <button onclick="resetScore(${state.players.indexOf(p)})">Reset</button>
+          </div>
+        `;
+
+        container.appendChild(div);
+      });
+    }
+
+    function randomColor() {
+      const colors = ['#334155','#1d4ed8','#065f46','#7c2d12','#581c87','#0f766e'];
+      return colors[Math.floor(Math.random()*colors.length)];
+    }
+
+    function addPlayer() {
+      const name = document.getElementById('playerName').value.trim();
+      if (!name) return;
+
+      state.players.push({ name, score: 0, color: randomColor() });
+      document.getElementById('playerName').value = '';
+
+      save(); render();
+    }
+
+    function addScore(index) {
+      const points = parseInt(prompt('Puntos de la ronda'));
+      if (isNaN(points)) return;
+
+      state.players[index].score += points;
+      save(); render();
+    }
+
+    function resetScore(index) {
+      if (confirm('Resetear?')) {
+        state.players[index].score = 0;
+        save(); render();
+      }
+    }
+
+    function nextRound() {
+      state.round++;
+      save(); render();
+    }
+
+    render();
+
+    // PWA SERVICE WORKER
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
