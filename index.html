@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Carioca Pro</title>
-
-  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
 
   <style>
@@ -15,66 +13,82 @@
       color: #fff;
       display: flex;
       justify-content: center;
-      padding: 20px;
+      padding: 10px;
     }
 
     .container {
       width: 100%;
-      max-width: 650px;
+      max-width: 500px;
       background: #1e293b;
-      padding: 20px;
+      padding: 15px;
       border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
     }
 
-    h1 { text-align: center; }
+    h1 { text-align: center; font-size: 20px; }
 
-    input, button, select {
+    input, button {
       width: 100%;
-      padding: 10px;
-      margin-bottom: 10px;
+      padding: 8px;
+      margin-bottom: 8px;
       border-radius: 8px;
       border: none;
     }
 
-    button {
-      background: #22c55e;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
+    button { background: #22c55e; color: white; }
+
+    .round { text-align: center; margin-bottom: 10px; }
 
     .player {
-      padding: 12px;
-      border-radius: 10px;
-      margin-bottom: 10px;
-      transition: transform 0.2s;
+      padding: 8px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
-    .player:hover { transform: scale(1.02); }
+    .player-info { flex: 1; }
 
-    .leader {
-      border: 2px solid gold;
-    }
+    .medal { font-size: 18px; margin-right: 5px; }
 
     .actions {
       display: flex;
-      gap: 5px;
+      gap: 4px;
     }
 
-    .actions button { flex: 1; background: #3b82f6; }
-    .actions button:last-child { background: #ef4444; }
+    .actions button {
+      padding: 5px;
+      font-size: 12px;
+    }
 
-    .round {
+    /* MODAL */
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      display: none;
+    }
+
+    .modal-content {
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 12px;
       text-align: center;
-      font-weight: bold;
-      margin-bottom: 10px;
+      width: 80%;
     }
+
+    .modal button { margin-top: 10px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🃏 Carioca Pro</h1>
+    <h1>🃏 Contador Carioca</h1>
+    <h2>Create by Victor Pereira</h2>
 
     <div class="round" id="roundInfo"></div>
 
@@ -86,6 +100,14 @@
     <div id="players"></div>
   </div>
 
+  <!-- MODAL -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <div id="modalText"></div>
+      <button onclick="closeModal()">OK</button>
+    </div>
+  </div>
+
   <script>
     const rounds = [
       "2 tríos",
@@ -94,20 +116,25 @@
       "3 tríos",
       "2 tríos + 1 escala",
       "1 trío + 2 escalas",
-      "3 escalas"
+      "4 trios"
+      "3 escalas"      
     ];
 
     let state = JSON.parse(localStorage.getItem('cariocaPro')) || {
-      players: [],
-      round: 0
+      players: [], round: 0
     };
 
     function save() {
       localStorage.setItem('cariocaPro', JSON.stringify(state));
     }
 
-    function getLeader() {
-      return [...state.players].sort((a,b)=>a.score-b.score)[0];
+    function showModal(text) {
+      document.getElementById('modalText').innerText = text;
+      document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('modal').style.display = 'none';
     }
 
     function render() {
@@ -118,20 +145,26 @@
       roundInfo.innerText = `Ronda ${state.round+1}: ${rounds[state.round] || 'Fin'}`;
 
       const sorted = [...state.players].sort((a,b)=>a.score-b.score);
-      const leader = getLeader();
 
       sorted.forEach((p, index) => {
-        const div = document.createElement('div');
-        div.className = 'player ' + (p === leader ? 'leader' : '');
+        let medal = '';
+        if (index === 0) medal = '🥇';
+        else if (index === 1) medal = '🥈';
+        else if (index === 2) medal = '🥉';
 
+        const div = document.createElement('div');
+        div.className = 'player';
         div.style.background = p.color;
 
         div.innerHTML = `
-          <h3>${p.name} ${p === leader ? '🏆' : ''}</h3>
-          <div>Puntos: ${p.score}</div>
+          <div class="player-info">
+            <span class="medal">${medal}</span>
+            <strong>${p.name}</strong><br>
+            ${p.score} pts
+          </div>
           <div class="actions">
-            <button onclick="addScore(${state.players.indexOf(p)})">+ Puntos</button>
-            <button onclick="resetScore(${state.players.indexOf(p)})">Reset</button>
+            <button onclick="addScore(${state.players.indexOf(p)})">+</button>
+            <button onclick="resetScore(${state.players.indexOf(p)})">x</button>
           </div>
         `;
 
@@ -146,7 +179,7 @@
 
     function addPlayer() {
       const name = document.getElementById('playerName').value.trim();
-      if (!name) return;
+      if (!name) return showModal('Ingresa un nombre');
 
       state.players.push({ name, score: 0, color: randomColor() });
       document.getElementById('playerName').value = '';
@@ -156,14 +189,14 @@
 
     function addScore(index) {
       const points = parseInt(prompt('Puntos de la ronda'));
-      if (isNaN(points)) return;
+      if (isNaN(points)) return showModal('Valor inválido');
 
       state.players[index].score += points;
       save(); render();
     }
 
     function resetScore(index) {
-      if (confirm('Resetear?')) {
+      if (confirm('¿Resetear?')) {
         state.players[index].score = 0;
         save(); render();
       }
@@ -171,12 +204,12 @@
 
     function nextRound() {
       state.round++;
+      showModal('Nueva ronda: ' + (rounds[state.round] || 'Fin del juego'));
       save(); render();
     }
 
     render();
 
-    // PWA SERVICE WORKER
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js');
     }
